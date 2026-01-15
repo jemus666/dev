@@ -1,0 +1,28 @@
+deepseek-backup-system/
+├── README.md
+├── .gitignore
+├── go.mod
+├── LICENSE
+├── server/
+│   ├── main.go
+│   ├── go.mod
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   └── config/
+│       └── config.yaml
+├── chrome-extension/
+│   ├── manifest.json
+│   ├── background.js
+│   ├── content.js
+│   ├── popup.html
+│   ├── popup.js
+│   └── icons/
+│       ├── icon16.png
+│       └── icon48.png
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── API.md
+│   └── SETUP.md
+└── scripts/
+    ├── deploy.sh
+    └── setup.sh
