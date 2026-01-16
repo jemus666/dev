@@ -1,40 +1,68 @@
-package main
+package main // начало программы, ТАК ВСЕГДА В Go!!
 
 import (
-        "fmt"
-        "net/http"
-        "time"
-)
+	"fmt"
+	"net"
+	"time"
+)				// Импортировал нужные для сервера библиотеки
 
 func main () {
-    fmt.Println("DeepSeek Backup Server starting...")
+	fmt.Println("Сервер запущен") // точка входа
 
+	// Создаем слушателя на порту 9090
+	// Порт это условно номер телефона сервера
+	listener, err := net.Listen("tcp", "localhost:9090") // Вот тут как раз слушаю
+	if err != nil { // Пытаюсь понять переводом на русский: Если ошибка(err) не равно nil, тогда выводим в терминал "Ошибка"
+		fmt.Println("Ошибка", err) // Тут как раз вывод в терминал текста с ошибкой
+		return // тут в случае ошибки возвращаемся к listener, err := net.Listen("tcp", "localhost:909")
+	}
 
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-            fmt.Fprintf(w, `
-            <!DOCTYPE html>
-            <html>
-            <head><title>Backup Server</title></head>
-            <body>
-                    <h1>DeepSeek Backup Server</h1>
-			<p>Status: <span style="color: green;">Running</span></p>
-			<p>Time: %s</p>
-			<p>Made by: jemus666</p>
-		</body>
-		</html>
-        `, time.Now().Format("2006-01-02 15:04:05"))
-    })
+	defer listener.Close() // Тут закрываем порт в любом случае
 
-    http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status": "healthy", "timestamp": "%s"}`, 
-			time.Now().Format(time.RFC3339))
-	})
+	for { // Добавил бесконечный цикл для принятия подключений?
+		conn, err := listener.Accept() // conn - переменная для принятия подключений, если можно так сказать?
+		if err != nil { // то же самое - проверка на ошибку
+			fmt.Println("Ошибка при подключении", err)
+			continue // если ошибка ждем дальше, не завершаем программу
+		}
+
+		go handleClient(conn) // горутина с бесконечной обработкой подключений? 
+	}
+}
+
+func handleClient(conn net.Conn) { // Здесь начинаем обрабатыать или "обслуживать клиента", но этим клиентом будет расширение в браузере
 	
-	fmt.Println("Server listening on :8080")
-	fmt.Println("Open http://localhost:8080 in browser")
-	
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-            fmt.Printf("Server error: %v\n", err)
-    }        
+	defer conn.Close() // Тут прекращаем обслуживание в случае ошибки 
+
+	clientAddr := conn.RemoteAddr().String() // Тут получаем IP клиента, будет IP моего компа
+	fmt.Printf("Новый клиент: %s\n", clientAddr) // Выводим этот IP для понимания на всякий случай
+
+	greeting := fmt.Sprintf( // Приветсвие
+		"Подключен %s\n"+
+		"Сейчас: %s\n",
+		clientAddr, // 1 Аргумент для 1 %s
+		time.Now().Format("15:04:05"), // 2 Аргумент для 2 %s
+	)
+	conn.Write([]byte(greeting)) // конвертируем в слайс байтов 
+
+	buffer := make([]byte, 1024) // задаем буфер для этого самого слайса 
+	n, err := conn.Read(buffer) // проверка на ошибку как обычно 
+	if err != nil { // сама ошибка 
+		fmt.Printf("Отключен: %v\n", err) // текст ошибки
+		return // закрываем соедение с "клиентом"     клиент => расширение браузера
+	}
+
+	message := string(buffer[:n]) // считываем сколько байтов в сообщении "клиента"
+	fmt.Printf("%s прислал: %s\n", clientAddr, message) // выводим его сообщение в терминал 
+
+	response := fmt.Sprintf( // Ответ для "клиента"
+		"Получено (%d байт):\n"+
+		"«%s»\n",
+		len(message), // Первый аргумент (%d) - длина сообщения в байтах
+		message, // Второй аргумент (%s) - само сообщение
+	) 
+
+	conn.Write([]byte(response)) // Ответ для "клиента", но по факту для меня
+
+	fmt.Printf("Клиент %s обслужен\n", clientAddr) // завершение, я увидел, значит все хорошо 
 }
